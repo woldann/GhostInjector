@@ -4,3 +4,6 @@
 [submodule "NThread"]
 	path = NThread
 	url = https://github.com/woldann/NThread
+[submodule "NThreadOSUtils"]
+	path = NThreadOSUtils
+	url = https://github.com/woldann/NThreadOSUtils
