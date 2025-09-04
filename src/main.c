@@ -22,9 +22,10 @@
  * SOFTWARE.
  */
 
+#include "nerror.h"
 #include "ntosutils.h"
 #include "ntmem.h"
-#include "nmem.h"
+#include "ntosutilswin.h"
 
 int main(int argc, char *argv[])
 {
@@ -92,26 +93,13 @@ int main(int argc, char *argv[])
 		LOG_WARN("nosu_attach failed");
 #endif /* ifdef LOG_LEVEL_1 */
 
-		ntid_t ids[MAX_THREAD_COUNT];
-		uint16_t thread_count = nosu_get_process_threads(ids, id);
-
-		HANDLE thread = nosu_find_available_thread(ids, thread_count);
-		if (thread == NULL) {
+		if (HAS_ERR(nosu_find_thread_and_upgrade(id))) {
 #ifdef LOG_LEVEL_1
-			LOG_ERROR("nosu_find_available_thread failed");
+			LOG_ERROR("nosu_find_thread_and_upgrade failed");
 #endif /* ifdef LOG_LEVEL_1 */
 
 			neptune_destroy();
 			return 0x06;
-		}
-
-		if (HAS_ERR(nosu_upgrade(thread))) {
-#ifdef LOG_LEVEL_1
-			LOG_ERROR("nosu_upgrade failed");
-#endif /* ifdef LOG_LEVEL_1 */
-
-			neptune_destroy();
-			return 0x07;
 		}
 	}
 
