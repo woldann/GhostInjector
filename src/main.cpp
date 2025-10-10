@@ -41,20 +41,26 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	// Parse command line arguments with cxxopts
-	cxxopts::Options options("GhostInjector", "DLL Injection tool for Windows processes");
+	cxxopts::Options options("GhostInjector", 
+	                         "DLL Injection tool for Windows processes\n\n"
+	                         "Examples:\n"
+	                         "  ghostinjector.exe 1234 mydll.dll\n"
+	                         "  ghostinjector.exe 5678 first.dll second.dll third.dll");
 	
 	options.add_options()
-		("h,help", "Print usage")
-		("positional", "Positional arguments: <id> <dll_paths...>", 
+		("h,help", "Print this help message")
+		("positional", "Process ID and DLL path(s)", 
 		 cxxopts::value<std::vector<std::string>>());
 
 	options.parse_positional({"positional"});
-	options.positional_help("<id> <dll_path> [dll_path2 ...]");
+	options.positional_help("<process_id> <dll_path> [dll_path2 ...]");
+	options.custom_help("[OPTIONS] <process_id> <dll_path> [dll_path2 ...]");
 
 	try {
 		auto result = options.parse(argc, argv);
 
-		if (result.count("help")) {
+		// Show help if no arguments or --help flag
+		if (argc == 1 || result.count("help")) {
 #ifdef LOG_LEVEL_1
 			LOG_INFO("%s", options.help().c_str());
 #else
@@ -65,11 +71,8 @@ int main(int argc, char *argv[])
 		}
 
 		if (!result.count("positional")) {
-#ifdef LOG_LEVEL_1
-			LOG_INFO("Usage: %s <id> <dll_path> [dll_path2 ...]", argv[0]);
-#else
-			std::cout << "Usage: " << argv[0] << " <id> <dll_path> [dll_path2 ...]" << std::endl;
-#endif
+			std::cerr << "Error: Missing required arguments" << std::endl;
+			std::cerr << std::endl << options.help() << std::endl;
 			neptune_destroy();
 			return 0x10;
 		}
@@ -77,12 +80,8 @@ int main(int argc, char *argv[])
 		auto& positional = result["positional"].as<std::vector<std::string>>();
 		
 		if (positional.size() < 2) {
-#ifdef LOG_LEVEL_1
-			LOG_ERROR("Not enough arguments. Usage: %s <id> <dll_path> [dll_path2 ...]", argv[0]);
-#else
-			std::cerr << "Not enough arguments. Usage: " << argv[0] 
-			          << " <id> <dll_path> [dll_path2 ...]" << std::endl;
-#endif
+			std::cerr << "Error: Not enough arguments (need at least PID and one DLL path)" << std::endl;
+			std::cerr << std::endl << options.help() << std::endl;
 			neptune_destroy();
 			return 0x10;
 		}
