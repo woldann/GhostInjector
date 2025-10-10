@@ -5,16 +5,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include(FetchContent)
-
-# Fetch cxxopts
-FetchContent_Declare(
-  cxxopts
-  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-  GIT_TAG v3.2.1
-)
-FetchContent_MakeAvailable(cxxopts)
-
 add_subdirectory(Neptune)
 add_subdirectory(NThread)
 add_subdirectory(NThreadOSUtils)
@@ -30,7 +20,7 @@ set(EXECUTABLE_NAME "${PROJECT_NAME_LOWER}-${PROJECT_VERSION}")
 
 add_executable(${EXECUTABLE_NAME} ${GHOSTINJECTOR_SOURCES})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GHOSTINJECTOR_INCLUDE_DIR})
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils cxxopts)
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils)
 
 # Dynamic linking - will use MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll)
 # Removed: -static -static-libgcc -static-libstdc++
