@@ -1,5 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
-project(GhostInjector VERSION 1.0.2 LANGUAGES C)
+project(GhostInjector VERSION 1.0.2 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+include(FetchContent)
+
+# Fetch cxxopts
+FetchContent_Declare(
+  cxxopts
+  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+  GIT_TAG v3.2.1
+)
+FetchContent_MakeAvailable(cxxopts)
 
 add_subdirectory(Neptune)
 add_subdirectory(NThread)
@@ -8,15 +22,18 @@ add_subdirectory(NThreadOSUtils)
 set(GHOSTINJECTOR_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(GHOSTINJECTOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-file(GLOB_RECURSE GHOSTINJECTOR_HEADERS CONFIGURE_DEPENDS ${GHOSTINJECTOR_INCLUDE_DIR}/*.h)
-file(GLOB_RECURSE GHOSTINJECTOR_SOURCES CONFIGURE_DEPENDS ${GHOSTINJECTOR_SOURCE_DIR}/*.c)
+file(GLOB_RECURSE GHOSTINJECTOR_HEADERS CONFIGURE_DEPENDS ${GHOSTINJECTOR_INCLUDE_DIR}/*.h ${GHOSTINJECTOR_INCLUDE_DIR}/*.hpp)
+file(GLOB_RECURSE GHOSTINJECTOR_SOURCES CONFIGURE_DEPENDS ${GHOSTINJECTOR_SOURCE_DIR}/*.c ${GHOSTINJECTOR_SOURCE_DIR}/*.cpp)
 
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 set(EXECUTABLE_NAME "${PROJECT_NAME_LOWER}-${PROJECT_VERSION}")
 
 add_executable(${EXECUTABLE_NAME} ${GHOSTINJECTOR_SOURCES})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GHOSTINJECTOR_INCLUDE_DIR})
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils)
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils cxxopts)
+
+# Dynamic linking - will use MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll)
+# Removed: -static -static-libgcc -static-libstdc++
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   LOG_LEVEL_2
