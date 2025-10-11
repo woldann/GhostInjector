@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(GhostInjector VERSION 1.0.2 LANGUAGES C CXX)
+
+# Enable new policy for MSVC runtime library selection
+cmake_policy(SET CMP0091 NEW)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +12,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # This embeds the runtime into the executable (no VCRUNTIME/MSVCP DLLs needed)
 if(MSVC)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  
+  # Alternative: Set compiler flags directly for older CMake versions
+  set(CompilerFlags
+    CMAKE_CXX_FLAGS
+    CMAKE_CXX_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_RELEASE
+    CMAKE_C_FLAGS
+    CMAKE_C_FLAGS_DEBUG
+    CMAKE_C_FLAGS_RELEASE
+  )
+  foreach(CompilerFlag ${CompilerFlags})
+    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+  endforeach()
 endif()
 
 add_subdirectory(Neptune)
