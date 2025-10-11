@@ -5,6 +5,12 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Use static C/C++ runtime (/MT) instead of dynamic (/MD)
+# This embeds the runtime into the executable (no VCRUNTIME/MSVCP DLLs needed)
+if(MSVC)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 add_subdirectory(Neptune)
 add_subdirectory(NThread)
 add_subdirectory(NThreadOSUtils)
@@ -21,9 +27,6 @@ set(EXECUTABLE_NAME "${PROJECT_NAME_LOWER}-${PROJECT_VERSION}")
 add_executable(${EXECUTABLE_NAME} ${GHOSTINJECTOR_SOURCES})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GHOSTINJECTOR_INCLUDE_DIR})
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils)
-
-# Dynamic linking - will use MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll)
-# Removed: -static -static-libgcc -static-libstdc++
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   LOG_LEVEL_2
