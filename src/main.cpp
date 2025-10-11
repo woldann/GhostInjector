@@ -41,20 +41,21 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	// Parse command line arguments with cxxopts
-	cxxopts::Options options("GhostInjector", 
-	                         "DLL Injection tool for Windows processes\n\n"
-	                         "Examples:\n"
-	                         "  ghostinjector.exe 1234 mydll.dll\n"
-	                         "  ghostinjector.exe 5678 first.dll second.dll third.dll");
-	
-	options.add_options()
-		("h,help", "Print this help message")
-		("positional", "Process ID and DLL path(s)", 
-		 cxxopts::value<std::vector<std::string>>());
+	cxxopts::Options options(
+		"GhostInjector",
+		"DLL Injection tool for Windows processes\n\n"
+		"Examples:\n"
+		"  ghostinjector.exe 1234 mydll.dll\n"
+		"  ghostinjector.exe 5678 first.dll second.dll third.dll");
 
-	options.parse_positional({"positional"});
+	options.add_options()("h,help", "Print this help message")(
+		"positional", "Process ID and DLL path(s)",
+		cxxopts::value<std::vector<std::string> >());
+
+	options.parse_positional({ "positional" });
 	options.positional_help("<process_id> <dll_path> [dll_path2 ...]");
-	options.custom_help("[OPTIONS] <process_id> <dll_path> [dll_path2 ...]");
+	options.custom_help(
+		"[OPTIONS] <process_id> <dll_path> [dll_path2 ...]");
 
 	try {
 		auto result = options.parse(argc, argv);
@@ -71,16 +72,20 @@ int main(int argc, char *argv[])
 		}
 
 		if (!result.count("positional")) {
-			std::cerr << "Error: Missing required arguments" << std::endl;
+			std::cerr << "Error: Missing required arguments"
+				  << std::endl;
 			std::cerr << std::endl << options.help() << std::endl;
 			neptune_destroy();
 			return 0x10;
 		}
 
-		auto& positional = result["positional"].as<std::vector<std::string>>();
-		
+		auto &positional =
+			result["positional"].as<std::vector<std::string> >();
+
 		if (positional.size() < 2) {
-			std::cerr << "Error: Not enough arguments (need at least PID and one DLL path)" << std::endl;
+			std::cerr
+				<< "Error: Not enough arguments (need at least PID and one DLL path)"
+				<< std::endl;
 			std::cerr << std::endl << options.help() << std::endl;
 			neptune_destroy();
 			return 0x10;
@@ -91,39 +96,41 @@ int main(int argc, char *argv[])
 #ifdef LOG_LEVEL_1
 		LOG_INFO("Neptune initialized!");
 		LOG_INFO("ID: %u", id);
-		LOG_INFO("Number of DLLs to inject: %zu", positional.size() - 1);
+		LOG_INFO("Number of DLLs to inject: %zu",
+			 positional.size() - 1);
 #endif
 
-	if (id == 0) {
+		if (id == 0) {
 #ifdef LOG_LEVEL_1
-		LOG_ERROR("Invalid id: must be greater than 0");
+			LOG_ERROR("Invalid id: must be greater than 0");
 #endif
-		neptune_destroy();
-		return 0x11;
-	}
+			neptune_destroy();
+			return 0x11;
+		}
 
-	// Get kernel32.dll handle (outside of any block for proper scope)
-	HMODULE kernel32 = GetModuleHandleA("kernel32");
-	if (kernel32 == NULL) {
+		// Get kernel32.dll handle (outside of any block for proper scope)
+		HMODULE kernel32 = GetModuleHandleA("kernel32");
+		if (kernel32 == NULL) {
 #ifdef LOG_LEVEL_1
-		LOG_ERROR("GetModuleHandleA failed");
+			LOG_ERROR("GetModuleHandleA failed");
 #endif
-		neptune_destroy();
-		return 0x20;
-	}
+			neptune_destroy();
+			return 0x20;
+		}
 
-	// Get LoadLibraryA function address (outside of any block for proper scope)
-	FARPROC load_library_func = GetProcAddress(kernel32, "LoadLibraryA");
-	if (load_library_func == NULL) {
+		// Get LoadLibraryA function address (outside of any block for proper scope)
+		FARPROC load_library_func =
+			GetProcAddress(kernel32, "LoadLibraryA");
+		if (load_library_func == NULL) {
 #ifdef LOG_LEVEL_1
-		LOG_ERROR("GetProcAddress failed");
+			LOG_ERROR("GetProcAddress failed");
 #endif
-		neptune_destroy();
-		return 0x21;
-	}
+			neptune_destroy();
+			return 0x21;
+		}
 
 #ifdef LOG_LEVEL_1
-	LOG_INFO("LoadLibraryA=%p", (void*)load_library_func);
+		LOG_INFO("LoadLibraryA=%p", (void *)load_library_func);
 #endif
 
 		// Initialize the ntutils layer for working on the target thread.
@@ -134,7 +141,8 @@ int main(int argc, char *argv[])
 
 			if (HAS_ERR(nosu_find_thread_and_upgrade(id))) {
 #ifdef LOG_LEVEL_1
-				LOG_ERROR("nosu_find_thread_and_upgrade failed");
+				LOG_ERROR(
+					"nosu_find_thread_and_upgrade failed");
 #endif
 				neptune_destroy();
 				return 0x06;
@@ -146,13 +154,15 @@ int main(int argc, char *argv[])
 			const char *dll_path = positional[i].c_str();
 
 #ifdef LOG_LEVEL_1
-			LOG_INFO("Injecting DLL [%zu/%zu]: %s", i, positional.size() - 1, dll_path);
+			LOG_INFO("Injecting DLL [%zu/%zu]: %s", i,
+				 positional.size() - 1, dll_path);
 #endif
 
 			size_t dll_path_len = strlen(dll_path);
 			size_t dll_path_size = dll_path_len + 1;
 
-			ntmem_t *ntmem = ntm_create_with_alloc_ex(dll_path_size + 1);
+			ntmem_t *ntmem =
+				ntm_create_with_alloc_ex(dll_path_size + 1);
 			if (ntmem == NULL) {
 #ifdef LOG_LEVEL_1
 				LOG_ERROR("ntm_create failed for %s", dll_path);
@@ -179,7 +189,8 @@ int main(int argc, char *argv[])
 #endif
 
 			// Call LoadLibraryA inside the target thread context.
-			void *load_library_ret = ntu_ucall((void*)load_library_func, dll_path_addr);
+			void *load_library_ret = ntu_ucall(
+				(void *)load_library_func, dll_path_addr);
 
 #ifdef LOG_LEVEL_1
 			LOG_INFO("LoadLibrary returned: %p", load_library_ret);
@@ -196,11 +207,12 @@ int main(int argc, char *argv[])
 		neptune_destroy();
 		return EXIT_SUCCESS;
 
-	} catch (const cxxopts::exceptions::exception& e) {
+	} catch (const cxxopts::exceptions::exception &e) {
 #ifdef LOG_LEVEL_1
 		LOG_ERROR("Error parsing arguments: %s", e.what());
 #else
-		std::cerr << "Error parsing arguments: " << e.what() << std::endl;
+		std::cerr << "Error parsing arguments: " << e.what()
+			  << std::endl;
 #endif
 		neptune_destroy();
 		return 0x10;

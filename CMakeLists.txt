@@ -28,7 +28,6 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils)
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   LOG_LEVEL_2
   NEPTUNE_MODULERULES_HEADER="ntosutils_rules.h"
-  LOG_FORCE_COLOR
   NEPTUNE_ENABLE_MEMMEM
   VERSION=${PROJECT_VERSION}
   LOG_FILE_PATH=L"ghostinjector.log"
