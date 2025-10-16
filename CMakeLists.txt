@@ -6,6 +6,11 @@ if(MSVC)
     string(REPLACE "/MT" "/MD" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 endif()
 
+# Set C standard to C99 for the entire project
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -35,4 +40,3 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   LOG_FILE_PATH=L"ghostinjector.log"
   LOG_ON_STDOUT=1
 )
-
