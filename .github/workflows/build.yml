@@ -35,23 +35,59 @@ jobs:
     - name: Rename executable
       run: mv build/ghostinjector-*.exe build/ghostinjector.exe
       
-    - name: Create Release
-      if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || startsWith(github.ref, 'refs/tags/v')
+    - name: Ensure full git history
+      run: |
+        # Fetch full history so changelog generation works reliably
+        git fetch --prune --unshallow || true
+
+    - name: Generate release notes
+      id: changelog
+      run: |
+        set -e
+        if [[ "${{ github.ref }}" == refs/heads/main ]]; then
+          echo "Latest development build for commit ${{ github.sha }}" > release_notes.txt
+          echo "" >> release_notes.txt
+          echo "Changes since last release (shortlog):" >> release_notes.txt
+          git --no-pager shortlog --pretty=format:"%h %s" -n main | head -200 >> release_notes.txt || true
+        else
+          TAG=${GITHUB_REF_NAME:-${GITHUB_REF#refs/tags/}}
+          echo "Release $TAG" > release_notes.txt
+          echo "" >> release_notes.txt
+          echo "Changelog (shortlog):" >> release_notes.txt
+          git --no-pager shortlog --pretty=format:"%h %s" -n $TAG | head -200 >> release_notes.txt || true
+        fi
+        echo "notes_path=release_notes.txt" >> $GITHUB_OUTPUT
+
+    - name: Upload release notes artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-notes
+        path: release_notes.txt
+
+    - name: Create/Update 'latest' release (development)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ (github.ref == 'refs/heads/main' && 'latest') || github.ref_name }}
-        name: ${{ (github.ref == 'refs/heads/main' && 'Latest Build (Development)') || github.ref_name }}
-        body: |
-          ## 🚀 Latest Development Build
-          
-          **Commit:** ${{ github.sha }}
-          
-          ### 📥 Download
-          - **Windows:** `ghostinjector.exe`
+        tag_name: latest
+        name: Latest Build (Development)
+        body_path: release_notes.txt
         files: build/ghostinjector.exe
         draft: false
-        prerelease: ${{ github.ref == 'refs/heads/main' }}
-        make_latest: ${{ github.ref == 'refs/heads/main' }}
+        prerelease: true
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create stable release for tags
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body_path: release_notes.txt
+        files: build/ghostinjector.exe
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
