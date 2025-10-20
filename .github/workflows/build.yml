@@ -30,6 +30,8 @@ jobs:
         cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw.cmake -DCMAKE_BUILD_TYPE=Release
     - name: Build
       run: cmake --build build
+    - name: Strip executable
+      run: x86_64-w64-mingw32-strip build/ghostinjector-*.exe
     - name: Rename executable
       run: mv build/ghostinjector-*.exe build/ghostinjector.exe
       
