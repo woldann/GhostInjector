@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 project(GhostInjector VERSION 1.0.2 LANGUAGES C)
 
+if(MSVC)
+    string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+endif()
+
+# Set C standard to C99 for the entire project
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
+if(WIN32)
+    set(CMAKE_EXECUTABLE_SUFFIX ".exe")
+endif()
+
 add_subdirectory(Neptune)
 add_subdirectory(NThread)
 add_subdirectory(NThreadOSUtils)
@@ -21,10 +34,8 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils)
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   LOG_LEVEL_2
   NEPTUNE_MODULERULES_HEADER="ntosutils_rules.h"
-  LOG_FORCE_COLOR
   NEPTUNE_ENABLE_MEMMEM
   VERSION=${PROJECT_VERSION}
   LOG_FILE_PATH=L"ghostinjector.log"
   LOG_ON_STDOUT=1
 )
-

@@ -11,7 +11,7 @@
  * furnished to do so, subject to the following conditions:
  * 
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies or substantial portions of the Software. 
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,44 +22,49 @@
  * SOFTWARE.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <windows.h>
+
 #include "nerror.h"
 #include "ntosutils.h"
 #include "ntmem.h"
 #include "ntosutilswin.h"
+
+void print_usage() {
+    printf("GhostInjector - DLL Injection tool for Windows processes\n\n");
+    printf("Examples:\n");
+    printf("  ghostinjector.exe 1234 mydll.dll\n");
+    printf("  ghostinjector.exe 5678 first.dll second.dll third.dll\n\n");
+    printf("Usage:\n");
+    printf("  ghostinjector.exe <process_id> <dll_path> [dll_path2 ...]\n");
+    printf("  ghostinjector.exe -h | --help\n");
+}
 
 int main(int argc, char *argv[])
 {
 	if (HAS_ERR(neptune_init()))
 		return EXIT_FAILURE;
 
-	if (argc < 3) {
-#ifdef LOG_LEVEL_1
-		LOG_INFO(
-			"Usage: %s <thread_id:DWORD or process_id:DWORD> <dll_path:string>",
-			argv[0]);
-#endif /* ifdef LOG_LEVEL_1 */
-
-		return 0x10;
+	if (argc < 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+		print_usage();
+		neptune_destroy();
+		return EXIT_SUCCESS;
 	}
 
-#ifdef LOG_LEVEL_1
-	LOG_INFO("Neptune initilaized!");
-#endif /* ifdef LOG_LEVEL_1 */
-
-	const char *dll_path = argv[2];
-	const char *id_str = argv[1];
+	uint32_t id = atoi(argv[1]);
 
 #ifdef LOG_LEVEL_1
-	LOG_INFO("DLL Path(%s)", dll_path);
-#endif /* ifdef LOG_LEVEL_1 */
+	LOG_INFO("Neptune initialized!");
+	LOG_INFO("ID: %u", id);
+	LOG_INFO("Number of DLLs to inject: %d", argc - 2);
+#endif
 
-	DWORD id = atoi(id_str);
-
-	if (id < 0) {
+	if (id == 0) {
 #ifdef LOG_LEVEL_1
 		LOG_ERROR("Invalid id: must be greater than 0");
-#endif /* ifdef LOG_LEVEL_1 */
-
+#endif
 		neptune_destroy();
 		return 0x11;
 	}
@@ -68,84 +73,85 @@ int main(int argc, char *argv[])
 	if (kernel32 == NULL) {
 #ifdef LOG_LEVEL_1
 		LOG_ERROR("GetModuleHandleA failed");
-#endif /* ifdef LOG_LEVEL_1 */
-
+#endif
 		neptune_destroy();
 		return 0x20;
 	}
 
-	void *load_library_func = GetProcAddress(kernel32, "LoadLibraryA");
+	FARPROC load_library_func = GetProcAddress(kernel32, "LoadLibraryA");
 	if (load_library_func == NULL) {
 #ifdef LOG_LEVEL_1
 		LOG_ERROR("GetProcAddress failed");
-#endif /* ifdef LOG_LEVEL_1 */
-
+#endif
+		neptune_destroy();
 		return 0x21;
 	}
 
 #ifdef LOG_LEVEL_1
-	LOG_INFO("LoadLibraryA=%p", load_library_func);
-#endif /* ifdef LOG_LEVEL_1 */
+	LOG_INFO("LoadLibraryA=%p", (void *)load_library_func);
+#endif
 
-	// Initialize the ntutils layer for working on the target thread.
 	if (HAS_ERR(nosu_attach(id))) {
 #ifdef LOG_LEVEL_1
 		LOG_WARN("nosu_attach failed");
-#endif /* ifdef LOG_LEVEL_1 */
+#endif
 
 		if (HAS_ERR(nosu_find_thread_and_upgrade(id))) {
 #ifdef LOG_LEVEL_1
 			LOG_ERROR("nosu_find_thread_and_upgrade failed");
-#endif /* ifdef LOG_LEVEL_1 */
-
+#endif
 			neptune_destroy();
 			return 0x06;
 		}
 	}
 
-	size_t dll_path_len = strlen(dll_path);
-	size_t dll_path_size = dll_path_len + 1;
+	for (int i = 2; i < argc; i++) {
+		const char *dll_path = argv[i];
 
-	ntmem_t *ntmem = ntm_create_with_alloc_ex(dll_path_size + 1);
-	if (ntmem == NULL) {
 #ifdef LOG_LEVEL_1
-		LOG_ERROR("ntm_create failed");
-#endif /* ifdef LOG_LEVEL_1 */
+		LOG_INFO("Injecting DLL [%d/%d]: %s", i - 1, argc - 2, dll_path);
+#endif
 
-		ntu_destroy();
-		neptune_destroy();
-		return 0x92;
+		size_t dll_path_len = strlen(dll_path);
+		size_t dll_path_size = dll_path_len + 1;
+
+		ntmem_t *ntmem = ntm_create_with_alloc_ex(dll_path_size + 1);
+		if (ntmem == NULL) {
+#ifdef LOG_LEVEL_1
+			LOG_ERROR("ntm_create failed for %s", dll_path);
+#endif
+			continue; 
+		}
+
+		void *local = NTM_LOCAL(ntmem);
+		memcpy(local, dll_path, dll_path_size);
+
+		void *dll_path_addr = ntm_push(ntmem);
+		if (dll_path_addr == NULL) {
+#ifdef LOG_LEVEL_1
+			LOG_ERROR("ntm_push failed for %s", dll_path);
+#endif
+			ntm_delete(ntmem);
+			continue;
+		}
+
+#ifdef LOG_LEVEL_1
+		LOG_INFO("DLL Path Address(%p)", dll_path_addr);
+#endif
+
+		void *load_library_ret = ntu_ucall((void *)load_library_func, dll_path_addr);
+
+#ifdef LOG_LEVEL_1
+		LOG_INFO("LoadLibrary returned: %p", load_library_ret);
+		if (load_library_ret != NULL) {
+			LOG_INFO("Successfully injected: %s", dll_path);
+		} else {
+			LOG_ERROR("Failed to inject: %s", dll_path);
+		}
+#endif
+
+		ntm_delete(ntmem);
 	}
-
-	// Copy the converted string into memory that will be pushed to the target.
-	void *local = NTM_LOCAL(ntmem);
-	memcpy(local, dll_path, dll_path_size);
-
-	// Push the DLL path into the remote memory.
-	void *dll_path_addr = ntm_push(ntmem);
-	if (dll_path_addr == NULL) {
-#ifdef LOG_LEVEL_1
-		LOG_ERROR("ntm_push failed");
-#endif /* ifdef LOG_LEVEL_1 */
-
-		ntu_destroy();
-		neptune_destroy();
-		return 0x93;
-	}
-
-#ifdef LOG_LEVEL_1
-	LOG_INFO("DLL Path Address(%p)", dll_path_addr);
-#endif /* ifdef LOG_LEVEL_1 */
-
-	// Call LoadLibraryA inside the target thread context.
-	void *load_library_ret = ntu_ucall(load_library_func, dll_path_addr);
-
-#ifdef LOG_LEVEL_1
-	LOG_INFO("Return Value(%p)", load_library_ret);
-#endif /* ifdef LOG_LEVEL_1 */
-
-	ntm_delete(ntmem);
-
 	ntu_destroy();
 	neptune_destroy();
 	return EXIT_SUCCESS;

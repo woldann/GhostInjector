@@ -1,0 +1,55 @@
+name: Build and Release GhostInjector
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64
+        
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw.cmake -DCMAKE_BUILD_TYPE=Release
+    - name: Build
+      run: cmake --build build
+    - name: Rename executable
+      run: mv build/ghostinjector-*.exe build/ghostinjector.exe
+      
+    - name: Create Release
+      if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ (github.ref == 'refs/heads/main' && 'latest') || github.ref_name }}
+        name: ${{ (github.ref == 'refs/heads/main' && 'Latest Build (Development)') || github.ref_name }}
+        body: |
+          ## 🚀 Latest Development Build
+          
+          **Commit:** ${{ github.sha }}
+          
+          ### 📥 Download
+          - **Windows:** `ghostinjector.exe`
+        files: build/ghostinjector.exe
+        draft: false
+        prerelease: ${{ github.ref == 'refs/heads/main' }}
+        make_latest: ${{ github.ref == 'refs/heads/main' }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
