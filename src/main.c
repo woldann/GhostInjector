@@ -32,14 +32,15 @@
 #include "ntmem.h"
 #include "ntosutilswin.h"
 
-void print_usage() {
-    printf("GhostInjector - DLL Injection tool for Windows processes\n\n");
-    printf("Examples:\n");
-    printf("  ghostinjector.exe 1234 mydll.dll\n");
-    printf("  ghostinjector.exe 5678 first.dll second.dll third.dll\n\n");
-    printf("Usage:\n");
-    printf("  ghostinjector.exe <process_id> <dll_path> [dll_path2 ...]\n");
-    printf("  ghostinjector.exe -h | --help\n");
+void print_usage()
+{
+	printf("GhostInjector - DLL Injection tool for Windows processes\n\n");
+	printf("Examples:\n");
+	printf("  ghostinjector.exe 1234 mydll.dll\n");
+	printf("  ghostinjector.exe 5678 first.dll second.dll third.dll\n\n");
+	printf("Usage:\n");
+	printf("  ghostinjector.exe <process_id> <dll_path> [dll_path2 ...]\n");
+	printf("  ghostinjector.exe -h | --help\n");
 }
 
 int main(int argc, char *argv[])
@@ -47,7 +48,8 @@ int main(int argc, char *argv[])
 	if (HAS_ERR(neptune_init()))
 		return EXIT_FAILURE;
 
-	if (argc < 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+	if (argc < 3 || strcmp(argv[1], "-h") == 0 ||
+	    strcmp(argv[1], "--help") == 0) {
 		print_usage();
 		neptune_destroy();
 		return EXIT_SUCCESS;
@@ -109,7 +111,8 @@ int main(int argc, char *argv[])
 		const char *dll_path = argv[i];
 
 #ifdef LOG_LEVEL_1
-		LOG_INFO("Injecting DLL [%d/%d]: %s", i - 1, argc - 2, dll_path);
+		LOG_INFO("Injecting DLL [%d/%d]: %s", i - 1, argc - 2,
+			 dll_path);
 #endif
 
 		size_t dll_path_len = strlen(dll_path);
@@ -120,7 +123,7 @@ int main(int argc, char *argv[])
 #ifdef LOG_LEVEL_1
 			LOG_ERROR("ntm_create failed for %s", dll_path);
 #endif
-			continue; 
+			continue;
 		}
 
 		void *local = NTM_LOCAL(ntmem);
@@ -139,7 +142,8 @@ int main(int argc, char *argv[])
 		LOG_INFO("DLL Path Address(%p)", dll_path_addr);
 #endif
 
-		void *load_library_ret = ntu_ucall((void *)load_library_func, dll_path_addr);
+		void *load_library_ret =
+			ntu_ucall((void *)load_library_func, dll_path_addr);
 
 #ifdef LOG_LEVEL_1
 		LOG_INFO("LoadLibrary returned: %p", load_library_ret);

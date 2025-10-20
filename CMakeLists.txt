@@ -18,6 +18,9 @@ add_subdirectory(Neptune)
 add_subdirectory(NThread)
 add_subdirectory(NThreadOSUtils)
 
+# Testleri derlemeye dahil et
+add_subdirectory(tests)
+
 set(GHOSTINJECTOR_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(GHOSTINJECTOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
