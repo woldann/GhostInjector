@@ -25,15 +25,28 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y mingw-w64
         
-    - name: Configure CMake
+    - name: Configure CMake (Release)
       run: |
         cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw.cmake -DCMAKE_BUILD_TYPE=Release
-    - name: Build
+        
+    - name: Build (Release)
       run: cmake --build build
-    - name: Strip executable
+      
+    - name: Strip executable (Release)
       run: x86_64-w64-mingw32-strip build/ghostinjector-*.exe
-    - name: Rename executable
+      
+    - name: Rename executable (Release)
       run: mv build/ghostinjector-*.exe build/ghostinjector.exe
+      
+    - name: Configure CMake (Debug - LOG_LEVEL_3)
+      run: |
+        cmake -B build-debug -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw.cmake -DCMAKE_BUILD_TYPE=Debug -DDEBUG_BUILD=ON -DCMAKE_EXE_LINKER_FLAGS="" -DCMAKE_SHARED_LINKER_FLAGS=""
+        
+    - name: Build (Debug)
+      run: cmake --build build-debug
+      
+    - name: Rename executable (Debug)
+      run: mv build-debug/ghostinjector-*.exe build-debug/ghostinjector-debug.exe
       
     - name: Ensure full git history
       run: |
@@ -71,7 +84,9 @@ jobs:
         tag_name: latest
         name: Latest Build (Development)
         body_path: release_notes.txt
-        files: build/ghostinjector.exe
+        files: |
+          build/ghostinjector.exe
+          build-debug/ghostinjector-debug.exe
         draft: false
         prerelease: true
         make_latest: true
@@ -85,7 +100,9 @@ jobs:
         tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
         body_path: release_notes.txt
-        files: build/ghostinjector.exe
+        files: |
+          build/ghostinjector.exe
+          build-debug/ghostinjector-debug.exe
         draft: false
         prerelease: false
       env:

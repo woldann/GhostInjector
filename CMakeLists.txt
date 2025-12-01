@@ -5,6 +5,12 @@ if(MSVC)
     string(REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
 
+# MinGW debug symbols (DWARF embedded in exe)
+if(MINGW AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -gdwarf-4")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -gdwarf-4")
+endif()
+
 # Set C standard to C99 for the entire project
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -34,8 +40,17 @@ add_executable(${EXECUTABLE_NAME} ${GHOSTINJECTOR_SOURCES})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GHOSTINJECTOR_INCLUDE_DIR})
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE NThreadOSUtils)
 
+# Debug build option for testers (enables LOG_LEVEL_3)
+option(DEBUG_BUILD "Enable debug build with verbose logging (LOG_LEVEL_3)" OFF)
+
+if(DEBUG_BUILD)
+  set(LOG_LEVEL_DEF "LOG_LEVEL_3")
+else()
+  set(LOG_LEVEL_DEF "LOG_LEVEL_2")
+endif()
+
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
-  LOG_LEVEL_2
+  ${LOG_LEVEL_DEF}
   NEPTUNE_MODULERULES_HEADER="ntosutils_rules.h"
   NEPTUNE_ENABLE_MEMMEM
   VERSION=${PROJECT_VERSION}

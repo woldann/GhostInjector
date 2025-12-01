@@ -1,4 +1,5 @@
 build/
+build-debug/
 .cache/
 .clangd
 .vscode
