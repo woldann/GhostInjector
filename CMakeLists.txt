@@ -45,8 +45,10 @@ option(DEBUG_BUILD "Enable debug build with verbose logging (LOG_LEVEL_3)" OFF)
 
 if(DEBUG_BUILD)
   set(LOG_LEVEL_DEF "LOG_LEVEL_3")
+  set(LOG_FILE_NAME "ghostinjector-debug.log")
 else()
   set(LOG_LEVEL_DEF "LOG_LEVEL_2")
+  set(LOG_FILE_NAME "ghostinjector.log")
 endif()
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
@@ -54,6 +56,6 @@ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   NEPTUNE_MODULERULES_HEADER="ntosutils_rules.h"
   NEPTUNE_ENABLE_MEMMEM
   VERSION=${PROJECT_VERSION}
-  LOG_FILE_PATH=L"ghostinjector.log"
+  LOG_FILE_PATH=L"${LOG_FILE_NAME}"
   LOG_ON_STDOUT=1
 )
